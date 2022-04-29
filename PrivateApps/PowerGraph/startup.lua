@@ -6,6 +6,9 @@
 
 
 --setup ar goggles
+local PlayerDetector = peripheral.find("playerDetector")
+if PlayerDetector == nil then error("playerDetector not found") end
+
 local controllerBlocks = {}
 controllerBlocks[1] = peripheral.wrap("arController_0")
 controllerBlocks[2] = peripheral.wrap("arController_1")
@@ -79,7 +82,7 @@ while true do
   --test if power is losing then apply redstone to top
   if (PowerMaking < PowerDraw) then
     BeenInPowerProleamsFor = BeenInPowerProleamsFor + 1
-    SecondPowerStageTimer = 30
+    SecondPowerStageTimer = 60
   else
     BeenInPowerProleamsFor = 0
   end
@@ -199,6 +202,27 @@ while true do
         controller.drawString(TextToWrite, 0, 0, 0xffffff)
       end
     end
+
+    --get all players in range
+    local WhitelistedPlayers = {}
+    WhitelistedPlayers["AI_Kiwi"] = true
+
+    local PlayerDataToSay = ""
+    --get all players in range
+    local players = PlayerDetector.getPlayersInRange(50)
+    --loop through and test if player is whitelisted
+    for k,v in pairs(players) do
+      --get if player is not whitelisted
+      if not WhitelistedPlayers[players] == true then
+        PlayerDataToSay = PlayerDataToSay .. v .. ", "
+      end
+    end
+
+    --local pos = detector.getPlayerPos(player) --getPlayerPos returns a table with coordinates
+    if PlayerDataToSay == "" then
+      controller.drawString(PlayerDataToSay, 0, 5, 0xff0000)
+    end
+
 
 
 
