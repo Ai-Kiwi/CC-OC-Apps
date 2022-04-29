@@ -1,21 +1,40 @@
+
+--todo
+--display different power stages and alerts on the graph
+--have log system
+--auto cut power to unneeded things
+
+
+--setup ar goggles
+local controllerBlocks = {}
+controllerBlocks[1] = peripheral.wrap("arController_0")
+controllerBlocks[2] = peripheral.wrap("arController_1")
+for i, controller in pairs(controllerBlocks) do
+  controller.setRelativeMode(true, 1600, 900)
+end
+
+
 local montior = peripheral.wrap("back")
 montior.setTextScale(0.5)
 local EnergyBlock = peripheral.wrap("energyDetector_0")
 local EnergyGenBlock = peripheral.wrap("energyDetector_1")
-local BatBlock = peripheral.wrap("thermal:energy_cell_0")
-
-local PowerOutput = 160
-local PowerUsingGraph = {1}
-local PowerGenGraph = {1}
-local BatGraph = {1}
+local BatBlock = peripheral.wrap("eliteEnergyCube_1")
 
 local montiorX, montiorY = term.getSize()
 local PowerDraw = EnergyBlock.getTransferRate()
 local PowerMaking = EnergyGenBlock.getTransferRate()
+local BatAmtFilled = BatBlock.getEnergy()
+
+local PowerOutput = 160
+local PowerUsingGraph = {PowerDraw}
+local PowerGenGraph = {PowerMaking}
+local BatGraph = {BatAmtFilled}
+
 local LargestPowerUse = math.max(unpack(PowerUsingGraph))
-local BatAmtFilled = 0
-local MaxBatSize = BatBlock.getEnergyCapacity()
+
+local MaxBatSize = BatBlock.getMaxEnergy()
 local SecondPowerStageTimer = 0
+local BeenInPowerProleamsFor = 0
 
 term.redirect(montior)
 
@@ -24,9 +43,11 @@ local function DrawGraph(ItemToDraw,DrawWith,MaxtAmt)
     local hightToGoto = montiorY
     if ItemToDraw[i] ~= nil then
       hightToGoto = montiorY - math.floor((ItemToDraw[i] / MaxtAmt) * (montiorY - 3))
+      term.setCursorPos(montiorX - i,hightToGoto)
+      term.write(DrawWith)
     end
 
-    term.setCursorPos(montiorX - i,hightToGoto)
+
 
     if hightToGoto/2 == math.floor(hightToGoto/2) then
       term.setBackgroundColor(2048)
@@ -34,12 +55,16 @@ local function DrawGraph(ItemToDraw,DrawWith,MaxtAmt)
       term.setBackgroundColor(4096)
     end
 
-    term.write(DrawWith)
+
   end
 end
 
 
+
 while true do
+
+
+
   montiorX, montiorY = term.getSize()
   PowerDraw = EnergyBlock.getTransferRate()
   PowerMaking = EnergyGenBlock.getTransferRate()
@@ -53,8 +78,14 @@ while true do
 
   --test if power is losing then apply redstone to top
   if (PowerMaking < PowerDraw) then
-    redstone.setOutput("top", true)
+    BeenInPowerProleamsFor = BeenInPowerProleamsFor + 1
     SecondPowerStageTimer = 30
+  else
+    BeenInPowerProleamsFor = 0
+  end
+
+  if BeenInPowerProleamsFor > 3 then
+    redstone.setOutput("top", true)
   else
     redstone.setOutput("top", false)
   end
@@ -69,8 +100,14 @@ while true do
 
 
   LargestPowerUse = math.max(unpack(PowerUsingGraph))
+  if math.max(unpack(PowerGenGraph)) > LargestPowerUse then
+    LargestPowerUse = math.max(unpack(PowerGenGraph))
+  end
+
   LargestPowerUse = math.sqrt((LargestPowerUse) + 1)
   LargestPowerUse = LargestPowerUse * LargestPowerUse
+
+
 
   term.clear()
   for i=1, montiorY do
@@ -116,11 +153,13 @@ while true do
 
   --print(" RF)
 
-  term.write("current power draw : " .. PowerDraw .. " RF")
-  term.write(" - Power making : " .. PowerMaking .. " RF")
-  if BatAmtFilled > (MaxBatSize * 0.999) then
+  local TextToWrite = ""
+
+  TextToWrite = TextToWrite .. "current power draw : " .. PowerDraw .. " RF"
+  TextToWrite = TextToWrite .. " - Power making : " .. PowerMaking .. " RF"
+  if BatAmtFilled > (MaxBatSize - PowerDraw - 100) then
   else
-    term.write(" - BatFullPercent : " .. math.floor((BatAmtFilled / MaxBatSize) * 100) .. "%")
+    TextToWrite = TextToWrite .. " - BatFullPercent : " .. math.floor((BatAmtFilled / MaxBatSize) * 100) .. "%"
   end
 
   if BasePowerMinsLeftHours == (1/0) then
@@ -128,19 +167,46 @@ while true do
     BasePowerMinsLeftMins = " inf "
     BasePowerTimeLeft = " inf "
   else
-    if BasePowerMinsLeftHours < 0 then
-      term.write(" - recharging")
-    else
-      term.write(" - EST time left : " .. BasePowerMinsLeftHours .. "h " .. BasePowerMinsLeftMins .. "m "  .. BasePowerTimeLeft .. "s")
+    if BasePowerMinsLeftHours > 0 then
+      TextToWrite = TextToWrite .. " - EST left : " .. BasePowerMinsLeftHours .. "h " .. BasePowerMinsLeftMins .. "m "  .. BasePowerTimeLeft .. "s"
     end
   end
 
+  if BeenInPowerProleamsFor > 0 then
+    TextToWrite = TextToWrite .. " - proleam time : " .. BeenInPowerProleamsFor
+  end
   if SecondPowerStageTimer > 0 then
-    term.write(" - Second Stage time left : " .. SecondPowerStageTimer)
+    TextToWrite = TextToWrite .. " - Second stage time : " .. SecondPowerStageTimer
   end
 
+  term.write(TextToWrite)
+
+  --do stuff for ar goggles
+  for i, controller in pairs(controllerBlocks) do
+    controller.clear()
+    if redstone.getInput("left") then
+      controller.fill(0,0,1600,900, 0x000000)
+    else
+
+          --controller.drawString(os.date(), 0, 0, 0xffffff)
+      if BeenInPowerProleamsFor > 3 then
+        if (BeenInPowerProleamsFor / 2) == math.floor(BeenInPowerProleamsFor / 2) then
+          controller.drawString(TextToWrite, 0, 0, 0xffff00)
+        else
+          controller.drawString(TextToWrite, 0, 0, 0xff0000)
+        end
+      else
+        controller.drawString(TextToWrite, 0, 0, 0xffffff)
+      end
+    end
 
 
+
+  end
+
+  while redstone.getInput("left") do
+    os.sleep(1)
+  end
 
   os.sleep(1)
 end
