@@ -1,4 +1,4 @@
-local montior = peripheral.wrap("top")
+local montior = peripheral.wrap("back")
 montior.setTextScale(0.5)
 local EnergyBlock = peripheral.wrap("energyDetector_0")
 local EnergyGenBlock = peripheral.wrap("energyDetector_1")
@@ -15,6 +15,7 @@ local PowerMaking = EnergyGenBlock.getTransferRate()
 local LargestPowerUse = math.max(unpack(PowerUsingGraph))
 local BatAmtFilled = 0
 local MaxBatSize = BatBlock.getEnergyCapacity()
+local SecondPowerStageTimer = 0
 
 term.redirect(montior)
 
@@ -49,6 +50,22 @@ while true do
   PowerGenGraph[montiorX] = nil
   table.insert(BatGraph, 1, BatAmtFilled)
   BatGraph[montiorX] = nil
+
+  --test if power is losing then apply redstone to top
+  if (PowerMaking < PowerDraw) then
+    redstone.setOutput("top", true)
+    SecondPowerStageTimer = 30
+  else
+    redstone.setOutput("top", false)
+  end
+
+  --looks if it should start second power stage because power is to low
+  SecondPowerStageTimer = SecondPowerStageTimer - 1
+  if SecondPowerStageTimer > 0 then
+    redstone.setOutput("right", true)
+  else
+    redstone.setOutput("right", false)
+  end
 
 
   LargestPowerUse = math.max(unpack(PowerUsingGraph))
@@ -96,11 +113,34 @@ while true do
   local BasePowerMinsLeftHours = math.floor(BasePowerMinsLeftMins / 60)
   BasePowerMinsLeftMins = BasePowerMinsLeftMins - (BasePowerMinsLeftHours * 60)
 
+
+  --print(" RF)
+
+  term.write("current power draw : " .. PowerDraw .. " RF")
+  term.write(" - Power making : " .. PowerMaking .. " RF")
+  if BatAmtFilled > (MaxBatSize * 0.999) then
+  else
+    term.write(" - BatFullPercent : " .. math.floor((BatAmtFilled / MaxBatSize) * 100) .. "%")
+  end
+
   if BasePowerMinsLeftHours == (1/0) then
     BasePowerMinsLeftHours = " inf "
     BasePowerMinsLeftMins = " inf "
     BasePowerTimeLeft = " inf "
+  else
+    if BasePowerMinsLeftHours < 0 then
+      term.write(" - recharging")
+    else
+      term.write(" - EST time left : " .. BasePowerMinsLeftHours .. "h " .. BasePowerMinsLeftMins .. "m "  .. BasePowerTimeLeft .. "s")
+    end
   end
-  print("current power draw : " .. PowerDraw .. " RF - Power making : " .. PowerMaking .. " RF - BatFullPercent : " .. math.floor((BatAmtFilled / MaxBatSize) * 100) .. "% - EST time left : " .. BasePowerMinsLeftHours .. "h " .. BasePowerMinsLeftMins .. "m "  .. BasePowerTimeLeft .. "s")
+
+  if SecondPowerStageTimer > 0 then
+    term.write(" - Second Stage time left : " .. SecondPowerStageTimer)
+  end
+
+
+
+
   os.sleep(1)
 end
