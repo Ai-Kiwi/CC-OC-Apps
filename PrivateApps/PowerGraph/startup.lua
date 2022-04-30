@@ -1,4 +1,4 @@
-
+local LastTime = os.epoch("utc")
 --todo
 --display different power stages and alerts on the graph
 --have log system
@@ -62,7 +62,11 @@ local function DrawGraph(ItemToDraw,DrawWith,MaxtAmt)
   end
 end
 
-
+local function Debug(Text)
+  term.redirect(term.native())
+  print(Text)
+  term.redirect(montior)
+end
 
 while true do
 
@@ -184,12 +188,28 @@ while true do
 
   term.write(TextToWrite)
 
+  --get a list of all players online
+  --then create a list of there cords
+  local PlayerCords = nil
+  if redstone.getInput("left") then
+    PlayerCords = {}
+    local Players = PlayerDetector.getOnlinePlayers()
+    for k,v in pairs(Players) do
+      PlayerCords[v] = PlayerDetector.getPlayerPos(v)
+    end
+  end
+
+
+
+
+
+
   --do stuff for ar goggles
   for i, controller in pairs(controllerBlocks) do
     controller.clear()
-    if redstone.getInput("left") then
-      controller.fill(0,0,1600,900, 0x000000)
-    else
+    --if redstone.getInput("left") then
+    --  controller.fill(0,0,1600,900, 0x000000)
+    --else
 
           --controller.drawString(os.date(), 0, 0, 0xffffff)
       if BeenInPowerProleamsFor > 3 then
@@ -201,36 +221,26 @@ while true do
       else
         controller.drawString(TextToWrite, 0, 0, 0xffffff)
       end
-    end
 
-    --get all players in range
-    local WhitelistedPlayers = {}
-    WhitelistedPlayers["AI_Kiwi"] = true
 
-    local PlayerDataToSay = ""
-    --get all players in range
-    local players = PlayerDetector.getPlayersInRange(50)
-    --loop through and test if player is whitelisted
-    for k,v in pairs(players) do
-      --get if player is not whitelisted
-      if not WhitelistedPlayers[players] == true then
-        PlayerDataToSay = PlayerDataToSay .. v .. ", "
+    if PlayerCords then
+      local LoopNumber = 0
+      for k,v in pairs(PlayerCords) do
+        LoopNumber = LoopNumber + 1
+        controller.drawString(k .. " - " .. v.x .. " " .. v.y .. " " .. v.z, 0, 5 + (5*LoopNumber), 0xffffff)
       end
     end
 
-    --local pos = detector.getPlayerPos(player) --getPlayerPos returns a table with coordinates
-    if PlayerDataToSay == "" then
-      controller.drawString(PlayerDataToSay, 0, 5, 0xff0000)
-    end
-
-
-
-
   end
 
-  while redstone.getInput("left") do
-    os.sleep(1)
-  end
 
-  os.sleep(1)
+
+
+
+  --wait untill a second has passed
+  while (os.epoch("utc") - LastTime) < 1000 do
+    os.sleep(0)
+  end
+  Debug(os.epoch("utc") - LastTime)
+  LastTime = os.epoch("utc")
 end
