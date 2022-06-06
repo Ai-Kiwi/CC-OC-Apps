@@ -8,7 +8,7 @@ if args[1] == "install" then
     VERSION = "installing"
 end 
 print("trying to update... ")
-local request = http.get("https://aikiwi.tech/Projects/CCProjects/sisters%20server/farm.lua")
+local request = http.get("https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/ToughFarm/farm.lua")
 if request then
     local VerText = request.readLine()
     local Data = request.readAll()
