@@ -1,12 +1,14 @@
---1.12
+--1.13
 --auto update
 local args = {...}
-local VERSION = "1.12"
+local VERSION = "1.13"
 term.clear()
 term.setCursorPos(1,1)
 if args[1] == "install" then
     VERSION = "installing"
 end 
+--to install
+-- wget run https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/ToughFarm/farm.lua install
 print("trying to update... ")
 local request = http.get("https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/ToughFarm/farm.lua")
 if request then
