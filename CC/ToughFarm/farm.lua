@@ -1,16 +1,17 @@
---1.13
+--2
+--simple program for an animal mod that has troughs in it and this script was made to auto refill them.
 --auto update
 local args = {...}
-local VERSION = "1.13"
+local VERSION = "2"
 term.clear()
 term.setCursorPos(1,1)
 if args[1] == "install" then
     VERSION = "installing"
 end 
 --to install
--- wget run https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/ToughFarm/farm.lua install
+-- wget run https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/CC/ToughFarm/farm.lua install
 print("trying to update... ")
-local request = http.get("https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/ToughFarm/farm.lua")
+local request = http.get("https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/CC/ToughFarm/farm.lua")
 if request then
     local VerText = request.readLine()
     local Data = request.readAll()
