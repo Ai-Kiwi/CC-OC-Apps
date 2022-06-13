@@ -6,7 +6,7 @@ local VERSION = "2"
 term.clear()
 term.setCursorPos(1,1)
 if args[1] == "install" then
-    VERSION = "installing"
+    VERSION = "installing " .. VERSION
 end 
 --to install
 -- wget run https://raw.githubusercontent.com/Ai-Kiwi/CC-Apps/main/CC/ToughFarm/farm.lua install
