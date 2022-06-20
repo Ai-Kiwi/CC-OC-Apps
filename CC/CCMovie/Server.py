@@ -5,10 +5,12 @@ import sys
 import random
 
 def GetSound(Frame):
+    SoundBufferSize = 1
+
     SoundFile = "./sound.dfpwm"
     file = open(SoundFile, "rb")
     file.seek(int(float(int(Frame) * 6000) / 20))
-    Data = file.read(6000)
+    Data = file.read(6000 * SoundBufferSize)
     file.read()
 
     return Data
@@ -49,7 +51,7 @@ def GetFrame(Frame):
         #convert rgb into decimal
         Value = (palette[(i * 3) + 2] + (palette[(i * 3) + 1] * 256) + (palette[(i * 3) + 0] * 65536) + 10000000)
         ListOfColors.append(Value)
-
+        
         # r g b
         #binary = bin(Value)[2:].zfill(25)
 
