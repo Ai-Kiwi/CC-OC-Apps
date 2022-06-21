@@ -1,14 +1,22 @@
 local ws = http.websocket("ws://localhost:8080/")
 
 local monitor = peripheral.find("monitor")
-term.redirect(monitor)
 
+term.redirect(monitor)
+monitor.setTextScale(0.5)
 --TODO:
 --add pause
 --add skip back and forward
 --add buffer for sound
+--make every websocket request async
+--fix frame stutter on sound catch up
 
+--client and server side settings
+local ImageWidth = 164
+local ImageHeight = 81
 local SoundBufferSize = 1
+--client side settings
+local CatchUpSize = 2
 
 local startTime = os.epoch("utc")
 
@@ -16,6 +24,8 @@ local dfpwm = require("cc.audio.dfpwm")
 local decoder = dfpwm.make_decoder()
 local speaker = peripheral.find("speaker")
 local LastAudioCall = 0
+local SoundDataCaught = ""
+
 
 --clear all the lines on the monitor
 --makes it so you can see debug colors
@@ -39,8 +49,7 @@ while true do
     Message = ws.receive(1)
 
 
-    local ImageWidth = 164
-    local ImageHeight = 81
+
 
     for i=0, 15 do 
 
@@ -79,17 +88,28 @@ while true do
 
     end
 
-    os.sleep(0)
+    
 
-    if os.epoch("utc") - LastAudioCall > (1000 * SoundBufferSize) then
-        ws.send("S" .. time + 1)
-        local SoundData = ws.receive(1)
-        local buffer = decoder(SoundData)
-        Worked = speaker.playAudio(buffer)
-        if Worked == true then
-            LastAudioCall = os.epoch("utc")
+    if os.epoch("utc") - LastAudioCall > (1000 * SoundBufferSize * CatchUpSize) then
+        if SoundDataCaught ~= "" then
+            local buffer = decoder(SoundDataCaught)
+            Worked = speaker.playAudio(buffer)
+            if Worked == true then
+                LastAudioCall = os.epoch("utc")
+            end
         end
+
+        SoundDataCaught = ""
+        for i=0, (CatchUpSize - 1) do
+            ws.send("S" .. time + 1 + (i*20) + (CatchUpSize * 20))
+            local SoundData = ws.receive(1)
+            SoundDataCaught = SoundDataCaught .. SoundData
+        end
+
+
     end
+
+    os.sleep(0)
 end
     
 
