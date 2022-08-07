@@ -1,32 +1,58 @@
-from glob import glob
-import re
 from PIL import Image
-import sys 
-import random
+from collections import Counter
+
+#changes to make
+#add gui into app.
+#add error cheeking so it crashs less.
+#make it so pixels can use the sub pixel thing (allows me to doubble screen width resulastion and triple hight resolution).
+#convert websockets to binary and compress them
+#patch how glitchy the sound is
+#add huge ammounits of buffering to server and client
+#make pre render for images to make it faster
+#make code cleaner and easier to read
+
+DirForFrame = "./Frames/"
+
+HighResChars = True
 
 def GetSound(Frame):
-    SoundBufferSize = 1
 
-    SoundFile = "./sound.dfpwm"
+    SoundFile = DirForFrame + "/sound.dfpwm"
     file = open(SoundFile, "rb")
-    file.seek(int(float(int(Frame) * 6000) / 20))
-    Data = file.read(6000 * SoundBufferSize)
-    file.read()
+    PosToRead = float(Frame) / 20
+    PosToRead = PosToRead * 6000
+    PosToRead = int(PosToRead)
+    file.seek(PosToRead)
 
+    print("reading sound at " + str(file.tell()))
+    Data = file.read(6000)
+
+    file.read()
     return Data
 
 def GetFrame(Frame):
-    DirForFrame = "./Frames/"
     FileToOpen = ""
     #create blank binary string
     FileToSend = ""
 
+    if HighResChars == True:
+        FileToSend = "H" + FileToSend
+    else:
+        FileToSend = "L" + FileToSend
+
+
+
     MoniterXRes = 164
     MoniterYRes = 81
-    VideoFPS = 20
 
+    if HighResChars == True:
+        MoniterXRes = MoniterXRes * 2
+        MoniterYRes = MoniterYRes * 3
+
+
+    print("image proccessing")
     #finds frame name
-
+    
     FileToOpen = Frame
     #for some reason ffmpeg makes sure its always atlest 4 number long 
     #so we add a 0 to the front of the number
@@ -40,11 +66,13 @@ def GetFrame(Frame):
    
 
     im = Image.open(FileToOpen)
-    im = im.resize((MoniterXRes, MoniterYRes), Image.ANTIALIAS)
+    if not (im.size[0] < MoniterXRes or im.size[1] < MoniterYRes):
+        im = im.resize((MoniterXRes, MoniterYRes), Image.ANTIALIAS)
     im = im.convert("P", palette=Image.ADAPTIVE, colors=16)
     
     palette = im.getpalette()
 
+    print("getting colors")
     ListOfColors = []
     #convert list to hex codes
     for i in range(0, 16):
@@ -59,23 +87,72 @@ def GetFrame(Frame):
         FileToSend = FileToSend + str(Value)
 
     IntToChr = ["0" ,"1" ,"2" ,"3" ,"4" ,"5" ,"6" ,"7" ,"8" ,"9" ,"a" ,"b" ,"c" ,"d" ,"e" ,"f"]
+    FileToSend = FileToSend + " : "
     
-
+    print("doing loop")
     #loop through all the pixels and find the corasponding hex code in the list then convert that code to binary
-    for y in range(0, im.size[1]):
-        for x in range(0, im.size[0]):
-        
+    for y in range(0, MoniterYRes):
+        for x in range(0, MoniterXRes):
+            RunLoop = True
 
-            PixelCode = im.getpixel((x, y))
-            #convert int to chacter
-            #PixelCode = chr(PixelCode + 96)
+            if HighResChars == True:
+                if x % 2 != 0:
+                    #print("skipping because x:" + str(x % 2) + " :" + str(x))
+                    RunLoop = False
+                if y % 3 != 0:
+                    #print("skiping because y:" + str(y % 3) + ":" + str(y))
+                    RunLoop = False
+            #print("not skipping")
+                
+                
 
-            #binary = bin(PixelCode)[2:].zfill(4)
-            #print(PixelCode)
-            FileToSend = FileToSend + IntToChr[PixelCode]
-    
-    #convert string that is 0 and 1s to proper binary
+
+
+            if RunLoop == True:
+                PixelCode = 0
+                if x > im.size[0] - 1 or y > im.size[1] - 1:
+                    PixelCode = 1
+                else:
+                    PixelCode = im.getpixel((x, y))
+
+                if HighResChars:
+                    #scans in a 2x3 row and gets the 2 most used colors then makes test using that
+
+                    #get list of colors
+                    colors = []
+                    for ys in range(0, 3):
+                        for xs in range(0, 2):
+                            item = im.getpixel((x + xs, y + ys))
+                            colors.append(IntToChr[item])
+                            
+                    MostUsedColor = None
+                    SecondMostUsedColor = None
+
+                    data = Counter(colors)
+                    #find the most used colors in the list
+                    #print(colors)
+
+                    MostUsedColor = data.most_common(1)[0][0]
+                    if len(data.most_common(2)) > 1:
+                        SecondMostUsedColor = data.most_common(2)[1][0]
+                    else:
+                        SecondMostUsedColor = MostUsedColor
+                    
+                    TextCode = "."
+
+
+
+
+                    
+                    FileToSend = FileToSend + TextCode + MostUsedColor + SecondMostUsedColor
+                else:   
+                    FileToSend = FileToSend + IntToChr[PixelCode]
+    print("sending data")
     return FileToSend
+    #convert string that is 0 and 1s to proper binary
+    #print(FileToSend)
+    
+    
 
 #start the websocket server using aiohttp
 from aiohttp import web
