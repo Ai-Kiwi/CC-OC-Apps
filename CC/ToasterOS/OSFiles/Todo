@@ -1,0 +1,42 @@
+List todo
+
+move pastebin dowloads over to github
+StoargeManger (has backup and clean tools in it)
+update progeams to support new system for StoargeManger
+add recovery settings
+add bios
+add boot settings (what apis to get)
+use better pastebin dowload
+Fix Exit os
+
+
+
+
+try vm software
+
+
+
+
+
+
+
+
+
+
+
+new drictory 
+-systemFiles-
+    systemSettings
+    bootSettings
+    coreOs
+    contracts
+    -systemPrograms-
+    -systemAPIS-
+    
+-programs-
+
+-programsData-
+
+-tempDownload-
+
+

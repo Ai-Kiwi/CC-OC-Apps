@@ -1,0 +1,261 @@
+-- says to use the api i made called safechat
+require("safechat")
+
+local AIBANK = {}
+
+-- note this script contains both the banking server and clainet code
+
+--server code
+shell.run("delete", "AIBANK.lua")
+shell.run("wget https://raw.githubusercontent.com/Ai-Kiwi/ai-kiwi-banks/main/AKBANK" ..  "?cb=" .. math.random(1,99999999) .. " AKBANK.lua")
+
+
+
+local function HostBankServer(PublicRSA,CodeUsedForDomain)
+    safechat.GetIpAddressFromServer(PublicRSA,CodeUsedForDomain)
+
+    term.clear()
+    term.setCursorPos(1,1)
+    print("Bank Server Started")
+
+
+
+    -- bank account format Code:{Balance,pin}
+    local BankAccounts = {}
+    -- codes to redeem format OneTimeCode:{card to send to,amt, sent from}
+    local CodesToRedeem = {}
+    --load bank accounts from file
+    local file = io.open("BankAccounts.txt","r")
+    if file then
+        for line in file:lines() do
+            local code,balance,pin = line:match("(%w+):{(%d+),(%d+)}")
+            if code then
+                BankAccounts[code] = {balance,pin}
+            end
+        end
+        file:close()
+    end
+    print("Loaded "..#BankAccounts.." bank accounts")
+    --save bank accounts to file
+    local function SaveBankAccounts()
+        local file = io.open("BankAccounts.txt","w")
+        for code,account in pairs(BankAccounts) do
+            file:write(code..":{"..account[1]..","..account[2].."}\n")
+        end
+        file:close()
+    end
+
+
+    
+    local function RandomString(n,charset)
+        local s = ""
+        for i = 1, n do
+            local r = math.random(1,#charset)
+            s = s .. charset:sub(r,r)
+        end
+        return s
+    end
+
+    
+
+    while true do
+        local MessageText, IpAddressFrom = safechat.WaitForMessage()
+        local Message = textutils.unserialize(MessageText)
+
+        print("Message from "..IpAddressFrom)
+        --looks that it is a ai kiwi bank message
+        if Message[1] == "AKBANK" then
+            print("Message is a AKBANK message")
+            -- looks for what the user is asking for
+            if Message[2] == "payment_request" then
+                print("user asking for payment request")
+                --clinet : "AKBANK","payment_request",<code>,<card>,<money to spend>
+                --server : "AKBANK","payment_request_responce","success",<one time code>
+                local card = Message[4]
+                --looks if vaild code
+                if BankAccounts[card][2] == Message[3] then
+                    --looks if vaild amount
+                    if BankAccounts[card][1] >= Message[4] then
+                        
+                        local OneTimeCode = RandomString(16,"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                        CodesToRedeem[OneTimeCode] = {card,Message[5]}
+                        
+
+                        --sends back the one time code
+                        safechat.SendMessage(textutils.serialize({"AKBANK","payment_request_responce","success",OneTimeCode}),IpAddressFrom)
+                        print("sent back success")
+                    else
+                        --sends back the one time code
+                        safechat.SendMessage(textutils.serialize({"AKBANK","payment_request_responce","failure"}),IpAddressFrom)
+                        print("sent back failure")
+                    end
+                else
+                    --sends back the one time code
+                    safechat.SendMessage(textutils.serialize({"AKBANK","payment_request_responce","failure"}),IpAddressFrom)
+                    print("sent back failure")
+                    
+                end
+                    
+                
+
+                SaveBankAccounts()
+            elseif Message[2] == "payment_code_redeem" then
+
+                print("user asking for payment code redeem")
+                --clinet : "AKBANK","payment_code_redeem",<card>,<one time code>
+                --server : "AKBANK","payment_request_responce","success",<ammounit redeemed>
+                local cardGettingMoney = Message[3]
+                local cardSendingMoney = CodesToRedeem[Message[4]][1]
+                local AmmounitToSend = CodesToRedeem[Message[4]][2]
+                -- BankAccounts[code] = {balance,pin}
+                --look if they have the money
+                if BankAccounts[cardGettingMoney][1] >= AmmounitToSend then
+                    if BankAccounts[cardSendingMoney][1] >= AmmounitToSend then
+                        --redeem the code
+                        BankAccounts[cardGettingMoney][1] = BankAccounts[cardGettingMoney][1] + AmmounitToSend
+                        BankAccounts[cardSendingMoney][1] = BankAccounts[cardSendingMoney][1] - AmmounitToSend
+                        safechat.SendMessage(textutils.serialize({"AKBANK","payment_code_redeem_responce","success",AmmounitToSend}),IpAddressFrom)
+                        print("redeemed code")
+                    else
+                        safechat.SendMessage(textutils.serialize({"AKBANK","payment_code_redeem_responce","failure"}),IpAddressFrom)
+                        print("failed to redeem code")
+                    end
+                else
+                    safechat.SendMessage(textutils.serialize({"AKBANK","payment_code_redeem_responce","failure"}),IpAddressFrom)
+                    print("failed to redeem code")
+                end
+                SaveBankAccounts()
+
+                        
+
+
+
+            elseif Message[2] == "check_payment" then
+                print("user asking for check payment")
+                --clinet : "AKBANK","check_payment",<one time code>
+                --server : "AKBANK","check_payment_responce","success",<Ammounit>
+                local card = CodesToRedeem[Message[3]][1]
+                local AmmounitToSend = CodesToRedeem[Message[3]][2]
+                if BankAccounts[card][1] >= AmmounitToSend then
+                    safechat.SendMessage(textutils.serialize({"AKBANK","check_payment_responce","success",AmmounitToSend}),IpAddressFrom)
+                    print("checked payment")
+                else
+                    safechat.SendMessage(textutils.serialize({"AKBANK","check_payment_responce","failure"}),IpAddressFrom)
+                    print("failed to check payment")
+                end
+
+            elseif Message[2] == "get_balance" then
+                print("user asking for get balance")
+                --clinet : "AKBANK","get_balance",<code>
+                --server : "AKBANK","get_balance_responce","success",<balance>
+                local card = Message[3]
+                local balance = BankAccounts[card][1]
+                safechat.SendMessage(textutils.serialize({"AKBANK","get_balance_responce","success",balance}),IpAddressFrom)
+                print("got balance")
+
+
+            end
+        end
+    end
+
+end
+AIBANK.HostBankServer = HostBankServer
+
+
+-- client code
+
+-- creates a code for someone to use
+local function payment_request(CreditCard,CreditCode,amount)
+
+    safechat.SendMessageToServer(textutils.serialise({"AKBANK","payment_request",CreditCode,CreditCard,amount}),"AIKIWIBANK")
+
+
+    local MessageText, IpAddressFrom = safechat.WaitForMessage()
+    if IpAddressFrom == "AIKIWIBANK" then
+        local Message = textutils.unserialize(MessageText)
+        if Message[1] == "AKBANK" then
+            if Message[2] == "payment_request_responce" then
+                if Message[3] == "success" then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+
+AIBANK.payment_request = payment_request
+
+-- redeems a code onto a bank account
+local function payment_code_redeem(CreditCard,OneTimeCode)
+    safechat.SendMessageToServer(textutils.serialise("AKBANK","payment_code_redeem",CreditCard,OneTimeCode),"AIKIWIBANK")
+
+    local MessageText, IpAddressFrom = safechat.WaitForMessage()
+    if IpAddressFrom == "AIKIWIBANK" then
+        local Message = textutils.unserialize(MessageText)
+        if Message[0] == "AKBANK" then
+            if Message[1] == "payment_code_redeem_responce" then
+                if Message[2] == "success" then
+                    return true
+                end
+            end
+        end
+    end
+
+end
+AIBANK.payment_code_redeem = payment_code_redeem
+
+
+
+--checks if a code is valid and how much its worth
+local function check_payment(OneTimeCode)
+ safechat.SendMessageToServer(textutils.serialise("AKBANK","check_payment",OneTimeCode),"AIKIWIBANK")
+ 
+ local MessageText, IpAddressFrom = safechat.WaitForMessage()
+    if IpAddressFrom == "AIKIWIBANK" then
+        local Message = textutils.unserialize(MessageText)
+        if Message[1] == "AKBANK" then
+            if Message[2] == "check_payment_responce" then
+                if Message[3] == "success" then
+                    return true, Message[4]
+                end
+            end
+        end
+    end
+
+end
+AIBANK.check_payment = check_payment
+
+local function get_balance(CreditCard,CreditCode)
+    safechat.SendMessageToServer(textutils.serialise("AKBANK","get_balance",CreditCode,CreditCard),"AIKIWIBANK")
+
+    local MessageText, IpAddressFrom = safechat.WaitForMessage()
+    if IpAddressFrom == "AIKIWIBANK" then
+        local Message = textutils.unserialize(MessageText)
+        if Message[1] == "AKBANK" then
+            if Message[2] == "get_balance_responce" then
+                if Message[3] == "success" then
+                    return true, Message[4]
+                end
+            end
+        end
+    end
+end
+
+
+
+return AIBANK
+
+
+--clinet : "AKBANK","payment_request",<code>,<card>,<money to spend>
+--server : "AKBANK","payment_request_responce","success",<one time code>
+--
+--clinet : "AKBANK","payment_code_redeem",<card>,<one time code>
+--server : "AKBANK","payment_request_responce","success",<ammounit redeemed>
+--
+--clinet : "AKBANK","check_payment",<one time code>
+--server : "AKBANK","check_payment_responce","success",<Ammounit>
+--
+--clinet : "AKBANK","Bank_Balance",<card>,<pin>
+--server : "AKBANK","Bank_Balance_responce","success",<Ammounit>

@@ -1,0 +1,70 @@
+area
+x -450 - 1250
+z 1000 - 200
+
+
+
+toast name forula <quailty level> <cripyness> <random moddifyers> <bread name> <toast or bread>
+
+<quailty level>
+crap -20
+low quilty -10
+alright quilty 5
+great quilty 20
+Extreme quilty 50
+
+<cripyness> 
+soggy -25
+soft 0
+hard 5
+cruchy 15
+cresspy 25
+Brick soild +50
+
+<random moddifyers> 
+moldy  -10
+nomeal +0
+magical +10
+Holy +15
+
+
+<bread name> 
+talk to cole
+
+<toast or bread>
+bread +10
+toast +25
+
+
+
+
+--points
+every so offtion 10m cooldown you can test to see somthing for a hint
+
+if toast hasn't been found in ages it moves it
+
+toast catachs score you points
+
+when you press the catch toast butten it tests if toast is nearby 
+and if there is it brings up catching menu
+
+nomeal bread can be put in toaster for a chace to get better (alot better then wild toast)
+
+you can upgrade toaster
+
+cheek if last toast is nil for new save
+
+press key to pop else main menu is a loop
+
+if a toast hasn't been found in days move it
+
+level system
+
+have a main menu with a bunch of ui stuff in it
+
+you place down toaster finder and it picks up stuff
+
+for screen refreshs get values then draw
+
+
+fix turtle link dumb system

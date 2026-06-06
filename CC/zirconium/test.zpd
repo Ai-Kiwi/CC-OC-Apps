@@ -1,0 +1,10 @@
+{
+  DESCRIPTION = "A test app.",
+  AUTHOR = "Zirconium",
+  NAME = "Test",
+  VERSION = "1.0",
+  permissions = {
+    admin = true,
+  },
+  CATEGORY = "Test",
+}

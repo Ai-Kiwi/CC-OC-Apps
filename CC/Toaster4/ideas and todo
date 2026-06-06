@@ -1,0 +1,3 @@
+-- have everything based around andried style
+-- every app ran in a vm
+-- all apps will when ran start the startup.lua file
